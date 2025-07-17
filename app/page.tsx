@@ -88,27 +88,27 @@ export default function Portfolio() {
     {
       title: "Birthday Dress",
       category: "Formal",
-      image: "/images/good.png",
+      image: "/images/good.PNG",
     },
     {
       title: "Evening Gown",
       category: "Evening Wear",
-      image: "/images/better.png",
+      image: "/images/better.PNG",
     },
     {
       title: "Casual Dress Alterations",
       category: "Alterations",
-      image: "/images/alter.png",
+      image: "/images/alter.PNG",
     },
     {
       title: "Custom Blazer",
       category: "Formal",
-      image: "/images/vint.png",
+      image: "/images/vint.PNG",
     },
     {
       title: "Vintage Restoration",
       category: "Restoration",
-      image: "/images/custom.png",
+      image: "/images/custom.PNG",
     },
   ];
 
@@ -267,11 +267,14 @@ export default function Portfolio() {
           </nav>
 
           <div className="flex items-center space-x-4">
-            <Button className="hidden md:block animated-button bg-rose-600 hover:bg-rose-700">
-              Book Consultation
-            </Button>
-            <MobileMenu />
-          </div>
+  <Button
+    className="hidden md:block animated-button bg-rose-600 hover:bg-rose-700"
+    onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
+  >
+    Book Consultation
+  </Button>
+  <MobileMenu />
+</div>
         </div>
       </header>
 
@@ -350,7 +353,7 @@ export default function Portfolio() {
             <ScrollAnimation animation="slideLeft">
               <div>
                 <h2 className="text-4xl font-bold dark:text-white text-gray-900 mb-6">
-                  About UK's GLAM
+                  About UK's GLAMS
                 </h2>
                 <p className="text-lg text-gray-600 dark:text-white mb-6">
                   With over 5 years of experience in bespoke tailoring, I
@@ -374,7 +377,7 @@ export default function Portfolio() {
             <ScrollAnimation animation="slideRight" delay={200}>
               <div className="relative">
                 <img
-                  src="/images/about.png"
+                  src="/images/about.PNG"
                   alt="UK's GLAM at work"
                   className="rounded-lg shadow-lg"
                 />
