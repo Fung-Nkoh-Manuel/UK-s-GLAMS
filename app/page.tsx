@@ -17,7 +17,7 @@ import { ScrollAnimation } from "@/components/scroll-animation";
 import { SmoothScroll } from "@/components/smooth-scroll";
 import { MobileMenu } from "@/components/mobile-menu";
 import { useState, useEffect } from "react";
-import { FaTiktok } from 'react-icons/fa';
+import { FaTiktok } from "react-icons/fa";
 export default function Portfolio() {
   const [theme, setTheme] = useState("light");
 
@@ -126,10 +126,10 @@ export default function Portfolio() {
       price: "From FCFA5000",
     },
     {
-      title: "Bridal Services",
+      title: "Bridal  Services",
       description:
         "Specializing in wedding dress fittings, alterations, and custom bridal wear.",
-      price: "From FCFA100000",
+      price: "      From FCFA100000",
     },
     {
       title: "Vintage Restoration",
@@ -336,9 +336,10 @@ export default function Portfolio() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="animated-button border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent"
+                  className="animated-button border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent
+             dark:border-purple-400 dark:text-purple-400 dark:hover:bg-purple-900 dark:hover:bg-opacity-20"
                 >
-                  <a href="#consultation-form">Book Consultation</a>
+                  <a href="#contact">Contact Me</a>
                 </Button>
               </div>
             </ScrollAnimation>
@@ -364,9 +365,9 @@ export default function Portfolio() {
                   that celebrate individual style and craftsmanship.
                 </p>
                 <p className="text-lg text-gray-600 dark:text-white mb-6">
-                  From wedding dresses to business suits, alterations to vintage
-                  restorations, every piece receives meticulous attention to
-                  detail and is crafted with the finest materials.
+                  From wedding dresses to birthday dresses, alterations to
+                  vintage restorations, every piece receives meticulous
+                  attention to detail and is crafted with the finest materials.
                 </p>
                 <div className="flex flex-wrap gap-2 mb-6">
                   <Badge variant="secondary">Bespoke Tailoring</Badge>
@@ -457,7 +458,7 @@ export default function Portfolio() {
                       <h3 className="text-xl font-semibold dark:text-white text-gray-900">
                         {service.title}
                       </h3>
-                      <span className="text-rose-600 font-semibold">
+                      <span className="text-rose-600 ml-4 font-semibold">
                         {service.price}
                       </span>
                     </div>
@@ -561,7 +562,7 @@ export default function Portfolio() {
                       <Button
                         variant="outline"
                         size="icon"
-                        className="border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent"
+                        className="border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent dark:border-purple-400 dark:text-purple-400 dark:hover:bg-purple-900 dark:hover:bg-opacity-20"
                       >
                         {/* Replace Instagram with FaTiktok */}
                         <FaTiktok className="h-4 w-4" />
@@ -575,7 +576,7 @@ export default function Portfolio() {
                       <Button
                         variant="outline"
                         size="icon"
-                        className="border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent"
+                        className="border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent dark:border-purple-400 dark:text-purple-400 dark:hover:bg-purple-900 dark:hover:bg-opacity-20"
                       >
                         <Facebook className="h-4 w-4" />
                       </Button>

@@ -67,6 +67,7 @@ export function MobileMenu() {
           <nav className="p-4">
             <div className="space-y-2">
               {[
+                { href: "#hero", label: "Home" },
                 { href: "#about", label: "About" },
                 { href: "#portfolio", label: "Portfolio" },
                 { href: "#services", label: "Services" },
