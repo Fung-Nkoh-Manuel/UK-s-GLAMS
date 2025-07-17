@@ -253,25 +253,24 @@ export default function Portfolio() {
             >
               Contact
             </a>
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/50 transition-colors duration-200"
-              aria-label="Toggle theme"
-            >
-              {theme === "light" ? (
-                <Moon className="h-5 w-5 text-gray-700 dark:text-gray-2000" />
-              ) : (
-                <Sun className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-              )}
-            </button>
           </nav>
-
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/50 transition-colors duration-200"
+            aria-label="Toggle theme"
+          >
+            {theme === "light" ? (
+              <Moon className="h-5 w-5 text-gray-700 dark:text-gray-2000" />
+            ) : (
+              <Sun className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            )}
+          </button>
           <div className="flex items-center space-x-4">
             <Button
               className="hidden md:block animated-button bg-rose-600 hover:bg-rose-700"
               onClick={() =>
                 document
-                  .getElementById("contact")
+                  .getElementById("consultation-form")
                   ?.scrollIntoView({ behavior: "smooth" })
               }
             >
@@ -339,7 +338,7 @@ export default function Portfolio() {
                   variant="outline"
                   className="animated-button border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent"
                 >
-                  <a href="#contact">Book Consultation</a>
+                  <a href="#consultation-form">Book Consultation</a>
                 </Button>
               </div>
             </ScrollAnimation>
@@ -595,6 +594,7 @@ export default function Portfolio() {
                   <form
                     className="space-y-4 dark:bg-gray-900 text-gray-900 dark:text-white"
                     onSubmit={handleSubmit}
+                    id="consultation-form"
                   >
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
