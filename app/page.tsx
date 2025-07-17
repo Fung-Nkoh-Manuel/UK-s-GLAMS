@@ -17,7 +17,7 @@ import { ScrollAnimation } from "@/components/scroll-animation";
 import { SmoothScroll } from "@/components/smooth-scroll";
 import { MobileMenu } from "@/components/mobile-menu";
 import { useState, useEffect } from "react";
-
+import { FaTiktok } from 'react-icons/fa';
 export default function Portfolio() {
   const [theme, setTheme] = useState("light");
 
@@ -267,14 +267,18 @@ export default function Portfolio() {
           </nav>
 
           <div className="flex items-center space-x-4">
-  <Button
-    className="hidden md:block animated-button bg-rose-600 hover:bg-rose-700"
-    onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
-  >
-    Book Consultation
-  </Button>
-  <MobileMenu />
-</div>
+            <Button
+              className="hidden md:block animated-button bg-rose-600 hover:bg-rose-700"
+              onClick={() =>
+                document
+                  .getElementById("contact")
+                  ?.scrollIntoView({ behavior: "smooth" })
+              }
+            >
+              Book Consultation
+            </Button>
+            <MobileMenu />
+          </div>
         </div>
       </header>
 
@@ -305,7 +309,7 @@ export default function Portfolio() {
             {/* Text content below */}
             <ScrollAnimation animation="slideUp" delay={200}>
               <h1 className="text-5xl md:text-7xl font-bold dark:text-white text-gray-900 mb-6">
-                UK's GLAMS
+                UK's GLAM
               </h1>
             </ScrollAnimation>
 
@@ -353,7 +357,7 @@ export default function Portfolio() {
             <ScrollAnimation animation="slideLeft">
               <div>
                 <h2 className="text-4xl font-bold dark:text-white text-gray-900 mb-6">
-                  About UK's GLAMS
+                  About UK's GLAM
                 </h2>
                 <p className="text-lg text-gray-600 dark:text-white mb-6">
                   With over 5 years of experience in bespoke tailoring, I
@@ -547,23 +551,36 @@ export default function Portfolio() {
                 </div>
                 <div className="mt-8">
                   <h4 className="text-lg font-semibold text-gray-900 mb-4 dark:text-gray-600">
-                    Follow UK's GLAMS
+                    Follow UK's GLAM
                   </h4>
                   <div className="flex space-x-4">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent"
+                    <a
+                      href="https://www.tiktok.com/@eukeria/video/7436757318995578167"
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      <Instagram className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent"
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent"
+                      >
+                        {/* Replace Instagram with FaTiktok */}
+                        <FaTiktok className="h-4 w-4" />
+                      </Button>
+                    </a>
+                    <a
+                      href="https://m.facebook.com/uks.glam/"
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      <Facebook className="h-4 w-4" />
-                    </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent"
+                      >
+                        <Facebook className="h-4 w-4" />
+                      </Button>
+                    </a>
                   </div>
                 </div>
               </div>
