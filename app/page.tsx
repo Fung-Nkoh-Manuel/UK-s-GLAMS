@@ -32,24 +32,46 @@ export default function Portfolio() {
     }
   }, []);
 
+  // In your main page component where this useEffect is, and where you manage `activeLink` state.
+
   useEffect(() => {
     const sections = ["hero", "about", "portfolio", "services", "contact"];
+
+    // Replace with your actual navbar height in pixels
+    // This helps prevent sections from being considered "active" when covered by the sticky navbar.
+    const NAVBAR_HEIGHT = 64; // Adjust this value if your navbar height is different
+
     const observerOptions = {
       root: null, // Use viewport as root
-      rootMargin: "0px", // No margin
-      threshold: [0.3, 0.5, 0.7], // Multiple thresholds for better detection
+      rootMargin: `-${NAVBAR_HEIGHT}px 0px 0px 0px`,
+      threshold: [0.1, 0.3, 0.5, 0.7, 0.9], // Multiple thresholds for finer-grained detection
     };
 
     const observer = new IntersectionObserver((entries) => {
+      let currentActiveSection = null;
+      let maxRatio = 0;
+
       entries.forEach((entry) => {
+        // Only consider sections that are actually intersecting and have the highest ratio
         if (entry.isIntersecting) {
-          const sectionId = `#${entry.target.id}`;
-          setActiveLink(sectionId);
-          console.log(
-            `Section in view: ${sectionId}, Intersection ratio: ${entry.intersectionRatio}`
-          ); // Debug log
+          if (entry.intersectionRatio > maxRatio) {
+            maxRatio = entry.intersectionRatio;
+            currentActiveSection = `#${entry.target.id}`;
+          }
         }
       });
+
+      if (currentActiveSection) {
+        setActiveLink(currentActiveSection);
+      } else {
+        // If no section is predominantly intersecting (e.g., at the very top of the page),
+        // default to the 'hero' or 'home' section.
+        // You might adjust the '100' value based on your hero section's initial scroll position.
+        if (window.scrollY < 100) {
+          setActiveLink("#hero");
+        }
+        // Otherwise, keep the last active link or handle as desired.
+      }
     }, observerOptions);
 
     // Observe each section
@@ -57,9 +79,6 @@ export default function Portfolio() {
       const element = document.getElementById(section);
       if (element) {
         observer.observe(element);
-        console.log(`Observing section: ${section}`); // Debug log
-      } else {
-        console.warn(`Section with ID "${section}" not found`); // Debug log for missing sections
       }
     });
 
@@ -70,7 +89,7 @@ export default function Portfolio() {
         if (element) observer.unobserve(element);
       });
     };
-  }, []);
+  }, []); // Ensure `setActiveLink` is stable or added to dependencies if it changes
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -83,17 +102,22 @@ export default function Portfolio() {
     {
       title: "Bespoke Wedding Dress",
       category: "Bridal",
-      image: "/images/wedding.jpeg",
+      image: "/images/wed.jpg",
+    },
+    {
+      title: "Wedding Dress",
+      category: "Bridal",
+      image: "/images/wedd.jpg",
     },
     {
       title: "Birthday Dress",
       category: "Formal",
-      image: "/images/good.PNG",
+      image: "/images/part.jpg",
     },
     {
-      title: "Evening Gown",
+      title: "party Gown",
       category: "Evening Wear",
-      image: "/images/better.PNG",
+      image: "/images/partyg.jpg",
     },
     {
       title: "Casual Dress Alterations",
@@ -104,6 +128,16 @@ export default function Portfolio() {
       title: "Custom Blazer",
       category: "Formal",
       image: "/images/vint.PNG",
+    },
+    {
+      title: "Custom Blazer",
+      category: "Formal",
+      image: "/images/custom.jpg",
+    },
+    {
+      title: "Custom Blazer",
+      category: "Formal",
+      image: "/images/cust.jpg",
     },
     {
       title: "Vintage Restoration",
@@ -147,7 +181,7 @@ export default function Portfolio() {
     },
     {
       name: "Wandi Fabien",
-      text: "Perfect suit alterations. Professional service and excellent craftsmanship.",
+      text: "Perfect dress alterations. Professional service and excellent craftsmanship.",
       rating: 5,
     },
     {
@@ -337,7 +371,7 @@ export default function Portfolio() {
                   size="lg"
                   variant="outline"
                   className="animated-button border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent
-             dark:border-purple-400 dark:text-purple-400 dark:hover:bg-purple-900 dark:hover:bg-opacity-20"
+             dark:border-rose-600 dark:text-rose-600 dark:hover:bg-purple-900 dark:hover:bg-opacity-20"
                 >
                   <a href="#contact">Contact Me</a>
                 </Button>
@@ -539,7 +573,7 @@ export default function Portfolio() {
                   <div className="flex items-center space-x-3">
                     <Mail className="h-5 w-5 text-rose-600" />
                     <span className="text-gray-600 dark:text-gray-400">
-                      eukeria@gmail.com
+                      eukeriawengang16@gmail.com
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
@@ -555,20 +589,6 @@ export default function Portfolio() {
                   </h4>
                   <div className="flex space-x-4">
                     <a
-                      href="https://www.tiktok.com/@eukeria/video/7436757318995578167"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent dark:border-purple-400 dark:text-purple-400 dark:hover:bg-purple-900 dark:hover:bg-opacity-20"
-                      >
-                        {/* Replace Instagram with FaTiktok */}
-                        <FaTiktok className="h-4 w-4" />
-                      </Button>
-                    </a>
-                    <a
                       href="https://m.facebook.com/uks.glam/"
                       target="_blank"
                       rel="noopener noreferrer"
@@ -576,9 +596,36 @@ export default function Portfolio() {
                       <Button
                         variant="outline"
                         size="icon"
-                        className="border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent dark:border-purple-400 dark:text-purple-400 dark:hover:bg-purple-900 dark:hover:bg-opacity-20"
+                        className="border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent dark:border-rose-600 dark:text-rose-600 dark:hover:bg-purple-900 dark:hover:bg-opacity-20"
                       >
                         <Facebook className="h-4 w-4" />
+                      </Button>
+                    </a>
+                    <a
+                      href="https://www.instagram.com/weukeria?igsh=MW8zNWN6bG9la2szeQ%3D%3D&utm_source=qr"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent dark:border-rose-600 dark:text-rose-600 dark:hover:bg-purple-900 dark:hover:bg-opacity-20"
+                      >
+                        <Instagram className="h-4 w-4" />
+                      </Button>
+                    </a>
+                    <a
+                      href="https://www.tiktok.com/@uks.glam?_t=ZM-8y7qh4dKvCf&_r=1"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="border-rose-600 text-rose-600 hover:bg-rose-50 bg-transparent dark:border-rose-600 dark:text-rose-600 dark:hover:bg-purple-900 dark:hover:bg-opacity-20"
+                      >
+                        {/* Replace Instagram with FaTiktok */}
+                        <FaTiktok className="h-4 w-4" />
                       </Button>
                     </a>
                   </div>
