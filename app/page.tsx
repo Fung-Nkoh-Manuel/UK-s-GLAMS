@@ -1,6 +1,11 @@
 "use client";
+import React, { useMemo} from 'react';
+import { ImageModal } from "@/components/ImageModal"; // Ensure path is correct
+import { CategoryPortfolioCard } from "@/components/CategoryPortfolioCard"; // <--- Import your new component
+
+
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent,CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Star,
@@ -20,6 +25,11 @@ import { useState, useEffect } from "react";
 import { FaTiktok } from "react-icons/fa";
 export default function Portfolio() {
   const [theme, setTheme] = useState("light");
+const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentImageSrc, setCurrentImageSrc] = useState('');
+  const [currentImageAlt, setCurrentImageAlt] = useState('');
+
+  
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
@@ -34,63 +44,74 @@ export default function Portfolio() {
 
   // In your main page component where this useEffect is, and where you manage `activeLink` state.
 
-  useEffect(() => {
-    const sections = ["hero", "about", "portfolio", "services", "contact"];
+ // In your main page component where this useEffect is, and where you manage `activeLink` state.
 
-    // Replace with your actual navbar height in pixels
-    // This helps prevent sections from being considered "active" when covered by the sticky navbar.
-    const NAVBAR_HEIGHT = 64; // Adjust this value if your navbar height is different
+useEffect(() => {
+  const sections = ["hero", "about", "portfolio", "services", "contact"];
 
-    const observerOptions = {
-      root: null, // Use viewport as root
-      rootMargin: `-${NAVBAR_HEIGHT}px 0px 0px 0px`,
-      threshold: [0.1, 0.3, 0.5, 0.7, 0.9], // Multiple thresholds for finer-grained detection
-    };
+  // **CRUCIAL: Re-verify this value precisely.**
+  // Use browser dev tools to get the exact computed height of your fixed navbar.
+  // A slight inaccuracy here is often the cause of flickering.
+  const NAVBAR_HEIGHT = 64; // Adjust this value to your exact navbar height in pixels
 
-    const observer = new IntersectionObserver((entries) => {
-      let currentActiveSection = null;
-      let maxRatio = 0;
+  const observerOptions = {
+    root: null, // Use viewport as root
+    // Negative top margin equal to your navbar height.
+    // Consider adding a small negative bottom margin too if sections are very tall
+    // and you want the active state to switch earlier as you scroll *past* them.
+    rootMargin: `-${NAVBAR_HEIGHT}px 0px -10% 0px`, // Example: -64px top, -10% bottom
+    threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1], // More granular thresholds are better
+  };
 
-      entries.forEach((entry) => {
-        // Only consider sections that are actually intersecting and have the highest ratio
-        if (entry.isIntersecting) {
-          if (entry.intersectionRatio > maxRatio) {
-            maxRatio = entry.intersectionRatio;
-            currentActiveSection = `#${entry.target.id}`;
-          }
+  const observer = new IntersectionObserver((entries) => {
+    let activeEntry = null;
+
+    // Find the most prominent intersecting entry that is coming into view
+    // Or is already significantly in view.
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+
+      if (entry.isIntersecting) {
+        // Option 1: Prioritize based on highest intersectionRatio among intersecting
+        if (!activeEntry || entry.intersectionRatio > activeEntry.intersectionRatio) {
+          activeEntry = entry;
         }
-      });
 
-      if (currentActiveSection) {
-        setActiveLink(currentActiveSection);
-      } else {
-        // If no section is predominantly intersecting (e.g., at the very top of the page),
-        // default to the 'hero' or 'home' section.
-        // You might adjust the '100' value based on your hero section's initial scroll position.
-        if (window.scrollY < 100) {
-          setActiveLink("#hero");
-        }
-        // Otherwise, keep the last active link or handle as desired.
+        // Option 2 (Alternative/Addition): If you want a minimum visibility to be considered "active"
+        // if (entry.intersectionRatio >= 0.7 && (!activeEntry || entry.intersectionRatio > activeEntry.intersectionRatio)) {
+        //   activeEntry = entry;
+        // }
       }
-    }, observerOptions);
+    }
 
-    // Observe each section
+    if (activeEntry) {
+      setActiveLink(`#${activeEntry.target.id}`);
+      // console.log(`[Active Link Set] -> #${activeEntry.target.id} (Ratio: ${activeEntry.intersectionRatio})`);
+    } else {
+      // If no section is predominantly intersecting (e.g., at the very top of the page, or scrolled entirely between sections),
+      // default to the 'hero' or 'home' section.
+      if (window.scrollY < 100) { // Adjust this value if 'hero' isn't at 0 scroll
+        setActiveLink("#hero");
+      }
+    }
+  }, observerOptions);
+
+  // Observe each section
+  sections.forEach((section) => {
+    const element = document.getElementById(section);
+    if (element) {
+      observer.observe(element);
+    }
+  });
+
+  // Cleanup observer on unmount
+  return () => {
     sections.forEach((section) => {
       const element = document.getElementById(section);
-      if (element) {
-        observer.observe(element);
-      }
+      if (element) observer.unobserve(element);
     });
-
-    // Cleanup observer on unmount
-    return () => {
-      sections.forEach((section) => {
-        const element = document.getElementById(section);
-        if (element) observer.unobserve(element);
-      });
-    };
-  }, []); // Ensure `setActiveLink` is stable or added to dependencies if it changes
-
+  };
+}, []);
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
@@ -116,7 +137,7 @@ export default function Portfolio() {
     },
     {
       title: "party Gown",
-      category: "Evening Wear",
+      category: "Alterations",
       image: "/images/partyg.jpg",
     },
     {
@@ -130,19 +151,19 @@ export default function Portfolio() {
       image: "/images/vint.PNG",
     },
     {
-      title: "Custom Blazer",
+      title: "Traditional Wear",
       category: "Formal",
       image: "/images/custom.jpg",
     },
     {
-      title: "Custom Blazer",
+      title: "Traditional Wear",
       category: "Formal",
       image: "/images/cust.jpg",
     },
     {
       title: "Vintage Restoration",
       category: "Restoration",
-      image: "/images/custom.PNG",
+      image: "/images/better.PNG",
     },
   ];
 
@@ -215,6 +236,28 @@ export default function Portfolio() {
     setService("");
     setMessage("");
   };
+
+  const currentYear = new Date().getFullYear();
+  const yearsOfExperience = currentYear - 2022;
+
+  const openModal = (src, alt) => {
+    setCurrentImageSrc(src);
+    setCurrentImageAlt(alt);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setCurrentImageSrc('');
+    setCurrentImageAlt('');
+  };
+
+  const groupedPortfolioItems = useMemo(() => {
+    return portfolioItems.reduce((acc, item) => {
+      (acc[item.category] = acc[item.category] || []).push(item);
+      return acc;
+    }, {});
+  }, [portfolioItems]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50">
@@ -394,7 +437,7 @@ export default function Portfolio() {
                   About UK's GLAM
                 </h2>
                 <p className="text-lg text-gray-600 dark:text-white mb-6">
-                  With over 5 years of experience in bespoke tailoring, I
+                  With over {yearsOfExperience} years  of experience in bespoke tailoring, I
                   specialize in creating beautiful, perfectly fitted garments
                   that celebrate individual style and craftsmanship.
                 </p>
@@ -427,45 +470,99 @@ export default function Portfolio() {
 
       {/* Portfolio Section */}
       <section id="portfolio" className="py-20 dark:bg-gray-900 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <ScrollAnimation animation="slideUp">
-            <h2 className="text-4xl font-bold text-center dark:text-white text-gray-900 mb-12">
-              Portfolio
-            </h2>
-          </ScrollAnimation>
+      <div className="container mx-auto px-4">
+        <ScrollAnimation animation="slideUp">
+          <h2 className="text-4xl font-bold text-center dark:text-white text-gray-900 mb-12">
+            Portfolio
+          </h2>
+        </ScrollAnimation>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {portfolioItems.map((item, index) => (
-              <ScrollAnimation
-                key={index}
-                animation="slideUp"
-                delay={index * 100}
-              >
-                <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="aspect-[3/4] overflow-hidden">
-                    <img
-                      src={item.image || "/placeholder.svg"}
-                      alt={item.title}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                      {item.title}
-                    </h3>
-                    <Badge
-                      variant="outline"
-                      className="text-rose-600 border-rose-600"
-                    >
-                      {item.category}
-                    </Badge>
+        {/* This grid now holds the main "Category Cards" */}
+        {/* You can adjust these grid columns to control how many category cards appear side-by-side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+          {Object.keys(groupedPortfolioItems).map((categoryName) => {
+            const itemsInCategory = groupedPortfolioItems[categoryName];
+            const itemCount = itemsInCategory.length;
+
+            // Determine inner grid classes for images *within* each category card
+            let innerGridClasses = "grid gap-3 sm:gap-4 mt-4"; // Smaller gap on mobile
+
+            if (itemCount === 1) {
+              innerGridClasses += " grid-cols-1 md:grid-cols-1";
+            } else if (itemCount === 2) {
+              innerGridClasses += " grid-cols-2 md:grid-cols-2";
+            } else if (itemCount === 3) {
+              // For 3 items: 2 on top on mobile, then 1 centered below.
+              innerGridClasses += " grid-cols-2 md:grid-cols-2";
+            } else if (itemCount === 4) {
+              // For 4 items: 2x2 grid on mobile and up
+              innerGridClasses += " grid-cols-2 md:grid-cols-2";
+            } else {
+              // Default for more than 4 items: 2 columns on mobile, 3 on larger screens (adjust as needed)
+              innerGridClasses += " grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
+            }
+
+            return (
+              // This is the "Category Card" wrapper for each category
+              <ScrollAnimation key={categoryName} animation="slideUp" delay={0}>
+                <Card className="p-4 h-full flex flex-col dark:bg-gray-800 dark:border-gray-700">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-center text-2xl sm:text-3xl dark:text-white">
+                      {categoryName}
+                    </CardTitle>
+                  </CardHeader>
+
+                  <CardContent className="flex-grow"> {/* This will contain the grid of images */}
+                    <div className={innerGridClasses}>
+                      {itemsInCategory.map((item, localIndex) => {
+                        let specificItemClasses = "";
+                        if (itemCount === 3 && localIndex === 2) {
+                          // For the 3rd item in a 3-item group, span both columns and center it.
+                          specificItemClasses = "col-span-2 justify-self-center max-w-[calc(50%-0.75rem)] sm:max-w-[calc(50%-1rem)] mx-auto";
+                          // ^ Adjust the calc() values if your 'gap' changes. (0.75rem for gap-3, 1rem for gap-4)
+                        }
+
+                        return (
+                          // Individual image item wrapper
+                          <div
+                            key={item.title + localIndex} // Use unique key
+                            className={`cursor-zoom-in group relative overflow-hidden rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 ${specificItemClasses}`}
+                            onClick={() => openModal(item.image, item.title)} // Use the openModal from parent state
+                          >
+                            <div className="aspect-[3/4] overflow-hidden"> {/* Enforce aspect ratio */}
+                              <img
+                                src={item.image || "/placeholder.svg"}
+                                alt={item.title}
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              />
+                            </div>
+                            {/* Hover overlay for title and badge */}
+                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <h4 className="font-semibold text-xs sm:text-sm">{item.title}</h4>
+                              <Badge variant="secondary" className="mt-1 text-xs">
+                                {item.category}
+                              </Badge>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </CardContent>
                 </Card>
               </ScrollAnimation>
-            ))}
-          </div>
+            );
+          })}
         </div>
-      </section>
+      </div>
+
+      {/* Image Modal (ensure you have this component created in components/ImageModal.jsx) */}
+      <ImageModal
+        isOpen={isModalOpen}
+        src={currentImageSrc}
+        alt={currentImageAlt}
+        onClose={closeModal}
+      />
+    </section>
 
       {/* Services Section */}
       <section
