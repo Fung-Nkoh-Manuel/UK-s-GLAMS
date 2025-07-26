@@ -1,42 +1,34 @@
 // components/ImageModal.jsx
 import React from 'react';
-import { X } from 'lucide-react'; // Make sure lucide-react is installed: npm install lucide-react
+import { X } from 'lucide-react';
 
 export function ImageModal({ src, alt, onClose, isOpen }) {
-  // If the modal is not open, don't render anything
   if (!isOpen) return null;
 
   return (
     <div
-      // Overlay for the modal: fixed, full screen, semi-transparent black background
-      className="fixed inset-0 z-[100] bg-black bg-opacity-80 flex items-center justify-center p-4 cursor-zoom-out"
-      // Close the modal when clicking on the dark overlay
+      className="fixed inset-0 z-[100] bg-black bg-opacity-90 flex items-center justify-center p-2 sm:p-4 cursor-zoom-out" // Reduced padding on mobile (p-2)
       onClick={onClose}
     >
       <div
-        // Container for the image: limits its size, adds rounded corners, shadow
-        className="relative max-w-4xl max-h-[90vh] bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden"
-        // Prevent clicks on the image itself from closing the modal
+        className="relative w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] bg-transparent rounded-lg overflow-hidden flex items-center justify-center" // Changed bg to transparent, centered items
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close button at the top right */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-white hover:text-gray-300 transition-colors z-10 p-2 rounded-full bg-black/50 hover:bg-black/70"
+          className="absolute top-2 right-2 sm:top-3 sm:right-3 text-white hover:text-gray-300 transition-colors z-10 p-2 rounded-full bg-black/50 hover:bg-black/70" // Adjusted button position for smaller screens
           aria-label="Close image"
         >
-          <X className="w-6 h-6" /> {/* 'X' icon from lucide-react */}
+          <X className="w-6 h-6" />
         </button>
-        {/* The enlarged image */}
         <img
           src={src}
           alt={alt}
-          // Make image responsive within its container, keeping aspect ratio
-          className="max-w-full max-h-[85vh] object-contain mx-auto"
+          // IMPORTANT: Ensure the image itself scales within the available space
+          className="max-w-full max-h-[calc(100vh-60px)] object-contain mx-auto my-auto" // Dynamic height calculation, use my-auto for vertical centering
         />
-        {/* Optional: Display image title/alt text at the bottom */}
         {alt && (
-          <div className="absolute bottom-0 left-0 right-0 p-3 bg-black/50 text-white text-center text-sm">
+          <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white text-center text-sm opacity-90"> {/* Reduced padding, fixed opacity */}
             {alt}
           </div>
         )}
