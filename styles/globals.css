@@ -2,16 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+/* Global CSS Resets and base styles */
+html, body {
+  /* IMPORTANT: Add these lines to prevent horizontal scrolling */
+  overflow-x: hidden; /* Hides horizontal overflow */
+  width: 100%;       /* Ensures body takes exactly 100% of viewport width */
+  margin: 0;         /* Removes default browser margin */
+  padding: 0;        /* Removes default browser padding */
+
+  /* Your existing font family */
   font-family: Arial, Helvetica, sans-serif;
+
+  /* Tailwind base styles from @layer base */
+  @apply bg-background text-foreground;
 }
 
+/* Your existing utility layer */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
 }
 
+/* Your existing base layer with custom properties for themes */
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -88,7 +101,9 @@ body {
   * {
     @apply border-border;
   }
-  body {
+  /* This block should now be covered by the html, body selector above for consistency,
+     but keeping it here won't hurt as @apply is a Tailwind directive. */
+  /* body {
     @apply bg-background text-foreground;
-  }
+  } */
 }

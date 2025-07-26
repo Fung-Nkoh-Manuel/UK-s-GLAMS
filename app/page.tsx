@@ -260,7 +260,7 @@ useEffect(() => {
   }, [portfolioItems]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50 overflow-x-hidden">
       <SmoothScroll />
 
       {/* Header */}

@@ -1,4 +1,5 @@
-// components/ImageModal.jsx
+"use client"; // Important for client-side functionality
+
 import React from 'react';
 import { X } from 'lucide-react';
 
@@ -7,31 +8,43 @@ export function ImageModal({ src, alt, onClose, isOpen }) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black bg-opacity-90 flex items-center justify-center p-2 sm:p-4 cursor-zoom-out overflow-hidden" // Added overflow-hidden to the main overlay
-      onClick={onClose}
+      // Main modal overlay: fixed, full screen, dark background, flex for centering.
+      // Crucially, `overflow-hidden` to prevent *any* child from causing scrollbars.
+      className="fixed inset-0 z-[100] bg-black bg-opacity-90 flex items-center justify-center p-2 sm:p-4 overflow-hidden"
+      onClick={onClose} // Closes modal if clicked on the backdrop
     >
       <div
-        // This container needs to manage its own width strictly
-        className="relative w-full max-w-full h-full max-h-[100vh] bg-transparent flex items-center justify-center"
-        onClick={(e) => e.stopPropagation()}
+        // Inner container for the image and controls.
+        // Needs to be relative for absolute positioning of children.
+        // Flex for centering the image *if* it doesn't entirely fill the space.
+        // `max-w-[100vw]` and `max-h-[100vh]` ensure it doesn't go beyond screen.
+        className="relative w-full h-full max-w-[100vw] max-h-[100vh]
+                   flex items-center justify-center
+                   bg-transparent" // Keep transparent to focus on image.
+        onClick={(e) => e.stopPropagation()} // Prevents closing when clicking on the content itself
       >
+        {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 sm:top-3 sm:right-3 text-white hover:text-gray-300 transition-colors z-10 p-2 rounded-full bg-black/50 hover:bg-black/70"
+          className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10 p-2 rounded-full bg-black/50 hover:bg-black/70"
           aria-label="Close image"
         >
-          <X className="w-6 h-6" />
+          <X className="w-8 h-8" /> {/* Slightly larger icon for easier tapping */}
         </button>
 
+        {/* The Image */}
         <img
           src={src}
           alt={alt}
-          // The image itself should fill its *constrained* parent
-          className="w-full h-full object-cover" // Ensure it covers the full width/height of its parent
+          // Absolute positioning, covering its parent entirely.
+          // `object-cover` for filling the space (cropping if needed).
+          // `inset-0` makes it stretch to all edges of its relative parent.
+          className="absolute inset-0 w-full h-full object-cover"
         />
 
+        {/* Image Title/Alt Text Overlay */}
         {alt && (
-          <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white text-center text-sm opacity-90">
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-black/60 text-white text-center text-sm z-10"> {/* Slightly more opaque background */}
             {alt}
           </div>
         )}
