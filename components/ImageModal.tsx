@@ -39,7 +39,7 @@ export function ImageModal({ src, alt, onClose, isOpen }) {
           // Absolute positioning, covering its parent entirely.
           // `object-cover` for filling the space (cropping if needed).
           // `inset-0` makes it stretch to all edges of its relative parent.
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-contain"
         />
 
         {/* Image Title/Alt Text Overlay */}
