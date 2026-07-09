@@ -1,6 +1,7 @@
 "use client";
 import React, { useMemo} from 'react';
 import { ImageModal } from "@/components/ImageModal"; // Ensure path is correct
+import { VideoModal } from "@/components/VideoModal"; // Create this component
 import { CategoryPortfolioCard } from "@/components/CategoryPortfolioCard"; // <--- Import your new component
 
 
@@ -17,7 +18,65 @@ import {
   Instagram,
   Facebook,
   MessageCircle,
+  Play,
 } from "lucide-react";
+
+const DEFAULT_PORTFOLIO_ITEMS = [
+  {
+    title: "Bespoke Wedding Dress",
+    category: "Bridal",
+    image: "/images/wed.jpg",
+    mediaType: "image",
+  },
+  {
+    title: "Wedding Dress",
+    category: "Bridal",
+    image: "/images/wedd.jpg",
+    mediaType: "image",
+  },
+  {
+    title: "Birthday Dress",
+    category: "Formal",
+    image: "/images/part.jpg",
+    mediaType: "image",
+  },
+  {
+    title: "party Gown",
+    category: "Alterations",
+    image: "/images/partyg.jpg",
+    mediaType: "image",
+  },
+  {
+    title: "Casual Dress Alterations",
+    category: "Alterations",
+    image: "/images/alter.PNG",
+    mediaType: "image",
+  },
+  {
+    title: "Custom Blazer",
+    category: "Formal",
+    image: "/images/vint.PNG",
+    mediaType: "image",
+  },
+  {
+    title: "Traditional Wear",
+    category: "Formal",
+    image: "/images/custom.jpg",
+    mediaType: "image",
+  },
+  {
+    title: "Traditional Wear",
+    category: "Formal",
+    image: "/images/cust.jpg",
+    mediaType: "image",
+  },
+  {
+    title: "Vintage Restoration",
+    category: "Restoration",
+    image: "/images/better.PNG",
+    mediaType: "image",
+  },
+];
 import { ScrollAnimation } from "@/components/scroll-animation";
 import { SmoothScroll } from "@/components/smooth-scroll";
 import { MobileMenu } from "@/components/mobile-menu";
@@ -25,9 +84,12 @@ import { useState, useEffect } from "react";
 import { FaTiktok } from "react-icons/fa";
 export default function Portfolio() {
   const [theme, setTheme] = useState("light");
-const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentImageSrc, setCurrentImageSrc] = useState('');
-  const [currentImageAlt, setCurrentImageAlt] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentMediaSrc, setCurrentMediaSrc] = useState('');
+  const [currentMediaAlt, setCurrentMediaAlt] = useState('');
+  const [currentMediaType, setCurrentMediaType] = useState('image');
+  const [portfolioItems, setPortfolioItems] = useState(DEFAULT_PORTFOLIO_ITEMS);
+  const [portfolioLoading, setPortfolioLoading] = useState(true);
 
   
 
@@ -119,53 +181,33 @@ useEffect(() => {
     localStorage.setItem("theme", newTheme);
   };
 
-  const portfolioItems = [
-    {
-      title: "Bespoke Wedding Dress",
-      category: "Bridal",
-      image: "/images/wed.jpg",
-    },
-    {
-      title: "Wedding Dress",
-      category: "Bridal",
-      image: "/images/wedd.jpg",
-    },
-    {
-      title: "Birthday Dress",
-      category: "Formal",
-      image: "/images/part.jpg",
-    },
-    {
-      title: "party Gown",
-      category: "Alterations",
-      image: "/images/partyg.jpg",
-    },
-    {
-      title: "Casual Dress Alterations",
-      category: "Alterations",
-      image: "/images/alter.PNG",
-    },
-    {
-      title: "Custom Blazer",
-      category: "Formal",
-      image: "/images/vint.PNG",
-    },
-    {
-      title: "Traditional Wear",
-      category: "Formal",
-      image: "/images/custom.jpg",
-    },
-    {
-      title: "Traditional Wear",
-      category: "Formal",
-      image: "/images/cust.jpg",
-    },
-    {
-      title: "Vintage Restoration",
-      category: "Restoration",
-      image: "/images/better.PNG",
-    },
-  ];
+  useEffect(() => {
+    const fetchPortfolioItems = async () => {
+      try {
+        const response = await fetch("/api/portfolio-upload");
+        const data = await response.json();
+
+        if (response.ok && data.success && Array.isArray(data.items) && data.items.length > 0) {
+          setPortfolioItems(
+            data.items.map((item) => ({
+              title: item.title,
+              category: item.category,
+              image: item.url,
+              mediaType: item.mediaType || "image",
+              thumbnailUrl: item.thumbnailUrl || item.url,
+              duration: item.duration || null,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error("Failed to fetch portfolio items:", error);
+      } finally {
+        setPortfolioLoading(false);
+      }
+    };
+
+    fetchPortfolioItems();
+  }, []);
 
   const services = [
     {
@@ -240,16 +282,18 @@ useEffect(() => {
   const currentYear = new Date().getFullYear();
   const yearsOfExperience = currentYear - 2022;
 
-  const openModal = (src, alt) => {
-    setCurrentImageSrc(src);
-    setCurrentImageAlt(alt);
+  const openModal = (src, alt, mediaType = "image") => {
+    setCurrentMediaSrc(src);
+    setCurrentMediaAlt(alt);
+    setCurrentMediaType(mediaType);
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setCurrentImageSrc('');
-    setCurrentImageAlt('');
+    setCurrentMediaSrc('');
+    setCurrentMediaAlt('');
+    setCurrentMediaType('image');
   };
 
   const groupedPortfolioItems = useMemo(() => {
@@ -522,25 +566,71 @@ useEffect(() => {
                           // ^ Adjust the calc() values if your 'gap' changes. (0.75rem for gap-3, 1rem for gap-4)
                         }
 
+                        const isVideo = item.mediaType === "video";
+
                         return (
-                          // Individual image item wrapper
+                          // Individual media item wrapper
                           <div
                             key={item.title + localIndex} // Use unique key
-                            className={`cursor-zoom-in group relative overflow-hidden rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 ${specificItemClasses}`}
-                            onClick={() => openModal(item.image, item.title)} // Use the openModal from parent state
+                            className={`cursor-pointer group relative overflow-hidden rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 ${specificItemClasses}`}
+                            onClick={() => openModal(item.image, item.title, isVideo ? "video" : "image")} // Use the openModal from parent state
+                            onMouseEnter={(e) => {
+                              if (isVideo) {
+                                const video = e.currentTarget.querySelector('video');
+                                if (video) {
+                                  try { video.play(); } catch (err) {}
+                                }
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (isVideo) {
+                                const video = e.currentTarget.querySelector('video');
+                                if (video) {
+                                  try {
+                                    video.pause();
+                                    video.currentTime = 0;
+                                  } catch (err) {}
+                                }
+                              }
+                            }}
                           >
-                            <div className="aspect-[3/4] overflow-hidden"> {/* Enforce aspect ratio */}
-                              <img
-                                src={item.image || "/placeholder.svg"}
-                                alt={item.title}
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                              />
+                            <div className="aspect-[3/4] overflow-hidden relative"> {/* Enforce aspect ratio */}
+                              {isVideo ? (
+                                <>
+                                  <video
+                                    src={item.image}
+                                    className="w-full h-full object-cover"
+                                    muted
+                                    loop
+                                    playsInline
+                                    poster={item.thumbnailUrl || item.image}
+                                  />
+                                  {/* Video play overlay */}
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/35 transition-opacity duration-300 group-hover:bg-black/50 pointer-events-none">
+                                    <div className="bg-rose-600 rounded-full p-3.5 shadow-lg transform transition-transform duration-300 group-hover:scale-110 flex items-center justify-center">
+                                      <Play className="h-6 w-6 text-white fill-white ml-0.5" />
+                                    </div>
+                                  </div>
+                                  {/* Video duration badge if available */}
+                                  {item.duration && (
+                                    <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded pointer-events-none">
+                                      {formatDuration(item.duration)}
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <img
+                                  src={item.image || "/placeholder.svg"}
+                                  alt={item.title}
+                                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                />
+                              )}
                             </div>
                             {/* Hover overlay for title and badge */}
-                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-3 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                               <h4 className="font-semibold text-xs sm:text-sm">{item.title}</h4>
                               <Badge variant="secondary" className="mt-1 text-xs">
-                                {item.category}
+                                {isVideo ? "🎬 Video" : item.category}
                               </Badge>
                             </div>
                           </div>
@@ -555,13 +645,22 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Image Modal (ensure you have this component created in components/ImageModal.jsx) */}
-      <ImageModal
-        isOpen={isModalOpen}
-        src={currentImageSrc}
-        alt={currentImageAlt}
-        onClose={closeModal}
-      />
+      {/* Modal - handles both images and videos */}
+      {currentMediaType === "video" ? (
+        <VideoModal
+          isOpen={isModalOpen}
+          src={currentMediaSrc}
+          alt={currentMediaAlt}
+          onClose={closeModal}
+        />
+      ) : (
+        <ImageModal
+          isOpen={isModalOpen}
+          src={currentMediaSrc}
+          alt={currentMediaAlt}
+          onClose={closeModal}
+        />
+      )}
     </section>
 
       {/* Services Section */}
@@ -814,4 +913,12 @@ useEffect(() => {
       </ScrollAnimation>
     </div>
   );
+}
+
+// Helper function to format video duration
+function formatDuration(seconds: number | undefined) {
+  if (!seconds) return '';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
 }

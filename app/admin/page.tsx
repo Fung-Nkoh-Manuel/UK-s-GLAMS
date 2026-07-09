@@ -1,0 +1,390 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Upload, Video, Image, Save, X, Trash2, LogOut } from "lucide-react";
+
+const CATEGORIES = ["Bridal", "Formal", "Alterations", "Restoration"];
+
+type PortfolioItem = {
+  _id: string;
+  title: string;
+  category: string;
+  url: string;
+  mediaType: "image" | "video";
+};
+
+export default function AdminUploadPage() {
+  const router = useRouter();
+
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "info" | "">("");
+
+  const [items, setItems] = useState<PortfolioItem[]>([]);
+  const [itemsLoading, setItemsLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const loadItems = async () => {
+    setItemsLoading(true);
+    try {
+      const response = await fetch("/api/portfolio-upload");
+      const data = await response.json();
+      if (data.success) {
+        setItems(data.items);
+      }
+    } catch (error) {
+      console.error("Failed to load portfolio items:", error);
+    } finally {
+      setItemsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadItems();
+  }, []);
+
+  const handleLogout = async () => {
+    await fetch("/api/admin/logout", { method: "POST" });
+    router.replace("/admin/login");
+    router.refresh();
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const response = await fetch(`/api/portfolio-upload/${id}`, { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to delete item.");
+      }
+      setItems((prev) => prev.filter((item) => item._id !== id));
+    } catch (error) {
+      console.error("Delete error:", error);
+      setMessage(`Error: ${error instanceof Error ? error.message : "Failed to delete item."}`);
+      setMessageType("error");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0] ?? null;
+
+    if (!selectedFile) {
+      setFile(null);
+      setPreview(null);
+      setMessage("No file selected.");
+      setMessageType("");
+      return;
+    }
+
+    setFile(selectedFile);
+
+    if (selectedFile.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onloadend = () => setPreview(reader.result as string);
+      reader.readAsDataURL(selectedFile);
+    } else {
+      setPreview(null);
+    }
+
+    setMessage(`Selected file: ${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)`);
+    setMessageType("info");
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!title || !category || !file) {
+      setMessage("Please fill in all fields and select a file.");
+      setMessageType("error");
+      return;
+    }
+
+    setUploading(true);
+    setMessage("Uploading... Please wait.");
+    setMessageType("info");
+
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("category", category);
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("/api/portfolio-upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Server failed to upload media.");
+      }
+
+      setTitle("");
+      setCategory(CATEGORIES[0]);
+      setFile(null);
+      setPreview(null);
+      setMessage(`Success! ${result.message}`);
+      setMessageType("success");
+
+      const input = document.getElementById("media-upload") as HTMLInputElement | null;
+      if (input) {
+        input.value = "";
+      }
+
+      loadItems();
+    } catch (error) {
+      console.error("Upload error:", error);
+      setMessage(`Error: ${error instanceof Error ? error.message : "Something went wrong during upload."}`);
+      setMessageType("error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeFile = () => {
+    setFile(null);
+    setPreview(null);
+    setMessage("");
+    setMessageType("");
+
+    const input = document.getElementById("media-upload") as HTMLInputElement | null;
+    if (input) {
+      input.value = "";
+    }
+  };
+
+  const fileTypeIcon = file ? (
+    file.type.startsWith("video/") ? (
+      <Video className="h-5 w-5 text-rose-500" />
+    ) : (
+      <Image className="h-5 w-5 text-rose-500" />
+    )
+  ) : (
+    <Upload className="h-5 w-5 text-gray-400" />
+  );
+
+  const statusClassName = {
+    success: "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20",
+    error: "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20",
+    info: "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20",
+  }[messageType] ?? "";
+
+  return (
+    <div className="min-h-screen p-4 md:p-8 dark:bg-gray-900">
+      <div className="container mx-auto max-w-2xl space-y-6">
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleLogout}
+            className="dark:border-gray-600 dark:text-gray-200"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Log out
+          </Button>
+        </div>
+
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-2xl md:text-3xl font-bold text-center dark:text-white flex items-center justify-center space-x-2">
+              <Upload className="h-6 w-6 md:h-7 md:w-7 text-rose-600" />
+              <span>Admin Media Uploader</span>
+            </CardTitle>
+            <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
+              Upload images or videos to your portfolio (Max: 100MB).
+            </p>
+          </CardHeader>
+
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Title
+                </label>
+                <Input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g., Bespoke Wedding Dress"
+                  required
+                  className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Category
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                >
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Media File (Image or Video)
+                </label>
+                <div className="flex items-center space-x-3 p-3 border-2 border-dashed rounded-lg dark:border-gray-600">
+                  {fileTypeIcon}
+                  <Input
+                    id="media-upload"
+                    type="file"
+                    accept="image/*,video/*"
+                    onChange={handleFileChange}
+                    required={!file}
+                    className="file:text-rose-600 file:bg-rose-50 file:border-0 file:rounded-full file:py-1 file:px-3 file:mr-4 hover:file:bg-rose-100 dark:file:bg-rose-900/50 dark:file:text-rose-300"
+                  />
+                  {file && (
+                    <Button type="button" variant="ghost" size="icon" onClick={removeFile} className="text-red-500 hover:text-red-700">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {preview && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Preview:</p>
+                  <div className="relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                    {file?.type.startsWith("video/") ? (
+                      <video src={preview} controls className="w-full max-h-64 object-contain" />
+                    ) : (
+                      <img src={preview} alt="Preview" className="w-full max-h-64 object-contain" />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {message && <p className={`rounded p-2 text-sm ${statusClassName}`}>{message}</p>}
+
+              <Button type="submit" disabled={uploading || !file} className="w-full animated-button bg-rose-600 hover:bg-rose-700 dark:bg-rose-700 dark:hover:bg-rose-800 disabled:opacity-50">
+                {uploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save to Portfolio
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold dark:text-white">Manage Portfolio Items</CardTitle>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Remove items that are outdated or uploaded by mistake.
+            </p>
+          </CardHeader>
+          <CardContent>
+            {itemsLoading ? (
+              <div className="flex items-center justify-center py-8 text-gray-500 dark:text-gray-400">
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Loading items...
+              </div>
+            ) : items.length === 0 ? (
+              <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                No portfolio items yet. Upload one above to get started.
+              </p>
+            ) : (
+              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                {items.map((item) => (
+                  <li key={item._id} className="flex items-center justify-between gap-3 py-3">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-700">
+                        {item.mediaType === "video" ? (
+                          <video src={item.url} className="h-full w-full object-cover" muted />
+                        ) : (
+                          <img src={item.url} alt={item.title} className="h-full w-full object-cover" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                          {item.title}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{item.category}</p>
+                      </div>
+                    </div>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          disabled={deletingId === item._id}
+                          className="flex-shrink-0 text-red-500 hover:text-red-700"
+                        >
+                          {deletingId === item._id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete "{item.title}"?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This removes the item from the live site and deletes the file from
+                            Cloudinary. This can't be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(item._id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
