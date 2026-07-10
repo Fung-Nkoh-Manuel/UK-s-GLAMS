@@ -14,39 +14,8 @@ cloudinary.config({
   secure: true,
 });
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB (Vercel free tier limit)
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB for Vercel free tier
 
-// ✅ GET all items
-export async function GET() {
-  await dbConnect();
-
-  try {
-    const items = await PortfolioItem.find({}).sort({ createdAt: -1 });
-    
-    // Transform items to include all needed fields
-    const transformedItems = items.map(item => ({
-      _id: item._id,
-      title: item.title,
-      category: item.category,
-      url: item.url,
-      mediaType: item.mediaType || 'image',
-      thumbnailUrl: item.thumbnailUrl || item.url,
-      duration: item.duration || null,
-      publicId: item.publicId,
-      createdAt: item.createdAt,
-    }));
-
-    return NextResponse.json({ success: true, items: transformedItems });
-  } catch (error) {
-    console.error("❌ GET Error:", error);
-    return NextResponse.json(
-      { success: false, message: "Failed to fetch portfolio items" },
-      { status: 500 }
-    );
-  }
-}
-
-// ✅ POST upload item (no temp file needed)
 export async function POST(request) {
   await dbConnect();
 
@@ -56,7 +25,6 @@ export async function POST(request) {
     const category = formData.get("category");
     const file = formData.get("file");
 
-    // Validate inputs
     if (!title || typeof title !== "string") {
       return NextResponse.json(
         { success: false, message: "Valid title is required." },
@@ -78,24 +46,23 @@ export async function POST(request) {
       );
     }
 
-    // Check file size
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         { 
           success: false, 
-          message: `File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit. Please compress your file.` 
+          message: `File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit.` 
         },
         { status: 400 }
       );
     }
 
-    // Get file buffer
+    // ✅ Convert to buffer - NO /tmp file needed
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     
     const mediaType = file.type?.startsWith("video/") ? "video" : "image";
 
-    // ✅ Upload directly from buffer (no temp file on Windows)
+    // ✅ Upload directly from buffer
     const uploadPromise = new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
@@ -106,7 +73,7 @@ export async function POST(request) {
             transformation: [
               { quality: "auto:good" },
               { fetch_format: "auto" },
-              { width: 1920, crop: "limit" } // Limit max width
+              { width: 1920, crop: "limit" }
             ],
           }),
           ...(mediaType === "video" && {
@@ -128,14 +95,12 @@ export async function POST(request) {
 
     const result = await uploadPromise;
 
-    // Save to database
     const newPortfolioItem = await PortfolioItem.create({
       title,
       category,
       url: result.secure_url,
       mediaType,
       publicId: result.public_id,
-      // Store thumbnail for videos
       ...(mediaType === "video" && result.eager && result.eager[0] && {
         thumbnailUrl: result.eager[0].secure_url,
       }),
@@ -157,6 +122,34 @@ export async function POST(request) {
         success: false,
         message: error.message || "An error occurred during upload.",
       },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET() {
+  await dbConnect();
+
+  try {
+    const items = await PortfolioItem.find({}).sort({ createdAt: -1 });
+    
+    const transformedItems = items.map(item => ({
+      _id: item._id,
+      title: item.title,
+      category: item.category,
+      url: item.url,
+      mediaType: item.mediaType || 'image',
+      thumbnailUrl: item.thumbnailUrl || item.url,
+      duration: item.duration || null,
+      publicId: item.publicId,
+      createdAt: item.createdAt,
+    }));
+
+    return NextResponse.json({ success: true, items: transformedItems });
+  } catch (error) {
+    console.error("❌ GET Error:", error);
+    return NextResponse.json(
+      { success: false, message: "Failed to fetch portfolio items" },
       { status: 500 }
     );
   }
