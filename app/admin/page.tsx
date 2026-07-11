@@ -137,7 +137,7 @@ export default function AdminUploadPage() {
     formData.append("resource_type", signData.resource_type);
     
     if (signData.transformation) {
-      formData.append("transformation", JSON.stringify(signData.transformation));
+      formData.append("transformation", signData.transformation);
     }
 
     const uploadResponse = await fetch(

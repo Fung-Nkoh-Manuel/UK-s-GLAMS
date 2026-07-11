@@ -24,8 +24,8 @@ export async function POST(request) {
       folder: `portfolio/${category.toLowerCase()}`,
       resource_type: mediaType === "video" ? "video" : "image",
       transformation: mediaType === "video" 
-        ? [{ quality: "auto:best" }, { format: "mp4" }, { bit_rate: "8000k" }]
-        : [{ quality: "auto:good" }, { fetch_format: "auto" }, { width: 1920, crop: "limit" }],
+        ? "q_auto:best,f_mp4,br_8000k"
+        : "q_auto:good,f_auto,w_1920,c_limit",
     };
 
     // Generate signature
