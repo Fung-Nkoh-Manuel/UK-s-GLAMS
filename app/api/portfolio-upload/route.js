@@ -14,7 +14,6 @@ cloudinary.config({
   secure: true,
 });
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB (Vercel free tier limit)
 
 // ✅ GET all items
 export async function GET() {

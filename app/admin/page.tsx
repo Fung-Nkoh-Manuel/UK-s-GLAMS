@@ -97,6 +97,21 @@ export default function AdminUploadPage() {
       return;
     }
 
+    // Explicitly validate file size (100MB max limit)
+    const MAX_SIZE = 100 * 1024 * 1024;
+    if (selectedFile.size > MAX_SIZE) {
+      setFile(null);
+      setPreview(null);
+      setMessage(`Error: Selected file is too large (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB). Maximum limit is 100 MB.`);
+      setMessageType("error");
+      
+      const input = document.getElementById("media-upload") as HTMLInputElement | null;
+      if (input) {
+        input.value = "";
+      }
+      return;
+    }
+
     setFile(selectedFile);
 
     if (selectedFile.type.startsWith("image/")) {
