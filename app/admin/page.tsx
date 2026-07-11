@@ -111,9 +111,55 @@ export default function AdminUploadPage() {
     setMessageType("info");
   };
 
+  const uploadToCloudinary = async (file: File, category: string) => {
+    const mediaType = file.type.startsWith("video/") ? "video" : "image";
+    
+    // 1. Get signed upload parameters
+    const signResponse = await fetch("/api/cloudinary-sign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category, mediaType }),
+    });
+
+    const signData = await signResponse.json();
+    
+    if (!signResponse.ok) {
+      throw new Error(signData.message || "Failed to get upload signature");
+    }
+
+    // 2. Upload directly to Cloudinary
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("api_key", signData.apiKey);
+    formData.append("timestamp", signData.timestamp.toString());
+    formData.append("signature", signData.signature);
+    formData.append("folder", signData.folder);
+    formData.append("resource_type", signData.resource_type);
+    
+    if (signData.transformation) {
+      formData.append("transformation", JSON.stringify(signData.transformation));
+    }
+
+    const uploadResponse = await fetch(
+      `https://api.cloudinary.com/v1_1/${signData.cloudName}/${signData.resource_type}/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const uploadResult = await uploadResponse.json();
+    
+    if (!uploadResponse.ok) {
+      throw new Error(uploadResult.error?.message || "Upload to Cloudinary failed");
+    }
+
+    return uploadResult;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+    
     if (!title || !category || !file) {
       setMessage("Please fill in all fields and select a file.");
       setMessageType("error");
@@ -121,33 +167,41 @@ export default function AdminUploadPage() {
     }
 
     setUploading(true);
-    setMessage("Uploading... Please wait.");
+    setMessage("Uploading to Cloudinary...");
     setMessageType("info");
 
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("category", category);
-    formData.append("file", file);
-
     try {
-      const response = await fetch("/api/portfolio-upload", {
+      // 1. Upload directly to Cloudinary from client
+      const cloudinaryResult = await uploadToCloudinary(file, category);
+
+      // 2. Save to your database via your server
+      const saveResponse = await fetch("/api/portfolio-upload", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          category,
+          url: cloudinaryResult.secure_url,
+          publicId: cloudinaryResult.public_id,
+          mediaType: file.type.startsWith("video/") ? "video" : "image",
+          thumbnailUrl: cloudinaryResult.eager?.[0]?.secure_url || null,
+          duration: cloudinaryResult.duration || null,
+        }),
       });
 
-      const result = await response.json();
+      const saveResult = await saveResponse.json();
 
-      if (!response.ok) {
-        throw new Error(result.message || "Server failed to upload media.");
+      if (!saveResponse.ok) {
+        throw new Error(saveResult.message || "Failed to save to database");
       }
 
       setTitle("");
       setCategory(CATEGORIES[0]);
       setFile(null);
       setPreview(null);
-      setMessage(`Success! ${result.message}`);
+      setMessage(`✅ Success! ${file.type.startsWith("video/") ? "Video" : "Image"} uploaded successfully!`);
       setMessageType("success");
-
+      
       const input = document.getElementById("media-upload") as HTMLInputElement | null;
       if (input) {
         input.value = "";
@@ -156,7 +210,7 @@ export default function AdminUploadPage() {
       loadItems();
     } catch (error) {
       console.error("Upload error:", error);
-      setMessage(`Error: ${error instanceof Error ? error.message : "Something went wrong during upload."}`);
+      setMessage(`❌ Error: ${error instanceof Error ? error.message : "Something went wrong during upload."}`);
       setMessageType("error");
     } finally {
       setUploading(false);

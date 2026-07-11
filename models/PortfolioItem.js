@@ -23,6 +23,14 @@ const PortfolioItemSchema = new mongoose.Schema({
     type: String, // Cloudinary ID for potential deletion/management later
     required: false,
   },
+  thumbnailUrl: {
+    type: String,
+    required: false,
+  },
+  duration: {
+    type: Number,
+    required: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
