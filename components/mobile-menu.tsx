@@ -76,7 +76,7 @@ export function MobileMenu() {
                 <a
                   key={item.href}
                   href={item.href}
-                  className={`block text-gray-900 bg-gray-800  dark:bg-white hover:text-rose-600 hover:bg-rose-50 transition-all duration-200 py-3 px-4 rounded-lg transform hover:translate-x-2`}
+                  className={`block text-gray-900 bg-white dark:bg-white hover:text-rose-600 hover:bg-rose-50 transition-all duration-200 py-3 px-4 rounded-lg transform hover:translate-x-2`}
                   style={{ transitionDelay: `${index * 50}ms` }}
                   onClick={handleLinkClick}
                 >
