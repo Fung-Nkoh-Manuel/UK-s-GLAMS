@@ -1,10 +1,32 @@
 "use client"; // Important for client-side functionality
 
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, Download } from 'lucide-react';
 
 export function ImageModal({ src, alt, onClose, isOpen }) {
   if (!isOpen) return null;
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const response = await fetch(src);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      // Get filename from alt or use default
+      const filename = alt ? `${alt.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.jpg` : "download.jpg";
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to download image:", err);
+      // Fallback: open in new tab
+      window.open(src, "_blank");
+    }
+  };
 
   return (
     <div
@@ -23,14 +45,26 @@ export function ImageModal({ src, alt, onClose, isOpen }) {
                    bg-transparent" // Keep transparent to focus on image.
         onClick={(e) => e.stopPropagation()} // Prevents closing when clicking on the content itself
       >
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10 p-2 rounded-full bg-black/50 hover:bg-black/70"
-          aria-label="Close image"
-        >
-          <X className="w-8 h-8" /> {/* Slightly larger icon for easier tapping */}
-        </button>
+        {/* Actions Container */}
+        <div className="absolute top-4 right-4 z-10 flex space-x-2">
+          {/* Download Button */}
+          <button
+            onClick={handleDownload}
+            className="text-white hover:text-gray-300 transition-colors p-2 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center"
+            aria-label="Download image"
+          >
+            <Download className="w-6 h-6 sm:w-8 sm:h-8" />
+          </button>
+          
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="text-white hover:text-gray-300 transition-colors p-2 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center"
+            aria-label="Close image"
+          >
+            <X className="w-6 h-6 sm:w-8 sm:h-8" />
+          </button>
+        </div>
 
         {/* The Image */}
         <img

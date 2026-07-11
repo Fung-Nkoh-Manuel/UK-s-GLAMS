@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Upload, Video, Image, Save, X, Trash2, LogOut } from "lucide-react";
+import { Loader2, Upload, Video, Image, Save, X, Trash2, LogOut, Pencil } from "lucide-react";
 
 const CATEGORIES = ["Bridal", "Formal", "Alterations", "Restoration"];
 
@@ -42,6 +42,7 @@ export default function AdminUploadPage() {
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [itemsLoading, setItemsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
 
   const loadItems = async () => {
     setItemsLoading(true);
@@ -91,9 +92,10 @@ export default function AdminUploadPage() {
 
     if (!selectedFile) {
       setFile(null);
-      setPreview(null);
-      setMessage("No file selected.");
-      setMessageType("");
+      // In edit mode, if we clear the file input, we want to restore the current item's preview
+      setPreview(editingItem ? editingItem.url : null);
+      setMessage(editingItem ? `Editing: "${editingItem.title}"` : "No file selected.");
+      setMessageType(editingItem ? "info" : "");
       return;
     }
 
@@ -101,7 +103,7 @@ export default function AdminUploadPage() {
     const MAX_SIZE = 100 * 1024 * 1024;
     if (selectedFile.size > MAX_SIZE) {
       setFile(null);
-      setPreview(null);
+      setPreview(editingItem ? editingItem.url : null);
       setMessage(`Error: Selected file is too large (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB). Maximum limit is 100 MB.`);
       setMessageType("error");
       
@@ -118,6 +120,8 @@ export default function AdminUploadPage() {
       const reader = new FileReader();
       reader.onloadend = () => setPreview(reader.result as string);
       reader.readAsDataURL(selectedFile);
+    } else if (selectedFile.type.startsWith("video/")) {
+      setPreview(URL.createObjectURL(selectedFile));
     } else {
       setPreview(null);
     }
@@ -175,47 +179,84 @@ export default function AdminUploadPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!title || !category || !file) {
+    if (!title || !category || (!file && !editingItem)) {
       setMessage("Please fill in all fields and select a file.");
       setMessageType("error");
       return;
     }
 
     setUploading(true);
-    setMessage("Uploading to Cloudinary...");
+    setMessage(editingItem ? "Updating portfolio item..." : "Uploading to Cloudinary...");
     setMessageType("info");
 
     try {
-      // 1. Upload directly to Cloudinary from client
-      const cloudinaryResult = await uploadToCloudinary(file, category);
-
-      // 2. Save to your database via your server
-      const saveResponse = await fetch("/api/portfolio-upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          category,
-          url: cloudinaryResult.secure_url,
-          publicId: cloudinaryResult.public_id,
-          mediaType: file.type.startsWith("video/") ? "video" : "image",
-          thumbnailUrl: cloudinaryResult.eager?.[0]?.secure_url || null,
-          duration: cloudinaryResult.duration || null,
-        }),
-      });
-
-      const saveResult = await saveResponse.json();
-
-      if (!saveResponse.ok) {
-        throw new Error(saveResult.message || "Failed to save to database");
+      let cloudinaryResult = null;
+      if (file) {
+        // 1. Upload new file directly to Cloudinary from client
+        cloudinaryResult = await uploadToCloudinary(file, category);
       }
 
+      if (editingItem) {
+        // Update existing item via PUT request
+        const updateData: any = {
+          title,
+          category,
+        };
+
+        if (cloudinaryResult) {
+          updateData.url = cloudinaryResult.secure_url;
+          updateData.publicId = cloudinaryResult.public_id;
+          updateData.mediaType = file!.type.startsWith("video/") ? "video" : "image";
+          updateData.thumbnailUrl = cloudinaryResult.eager?.[0]?.secure_url || null;
+          updateData.duration = cloudinaryResult.duration || null;
+        }
+
+        const response = await fetch(`/api/portfolio-upload/${editingItem._id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updateData),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.message || "Failed to update item.");
+        }
+
+        setMessage(`✅ Success! Item "${title}" updated successfully!`);
+        setMessageType("success");
+      } else {
+        // Save new item to your database via your server
+        const saveResponse = await fetch("/api/portfolio-upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title,
+            category,
+            url: cloudinaryResult.secure_url,
+            publicId: cloudinaryResult.public_id,
+            mediaType: file!.type.startsWith("video/") ? "video" : "image",
+            thumbnailUrl: cloudinaryResult.eager?.[0]?.secure_url || null,
+            duration: cloudinaryResult.duration || null,
+          }),
+        });
+
+        const saveResponseResult = await saveResponse.json();
+
+        if (!saveResponse.ok) {
+          throw new Error(saveResponseResult.message || "Failed to save to database");
+        }
+
+        setMessage(`✅ Success! ${file!.type.startsWith("video/") ? "Video" : "Image"} uploaded successfully!`);
+        setMessageType("success");
+      }
+
+      // Reset uploader form state
       setTitle("");
       setCategory(CATEGORIES[0]);
       setFile(null);
       setPreview(null);
-      setMessage(`✅ Success! ${file.type.startsWith("video/") ? "Video" : "Image"} uploaded successfully!`);
-      setMessageType("success");
+      setEditingItem(null);
       
       const input = document.getElementById("media-upload") as HTMLInputElement | null;
       if (input) {
@@ -224,19 +265,51 @@ export default function AdminUploadPage() {
 
       loadItems();
     } catch (error) {
-      console.error("Upload error:", error);
-      setMessage(`❌ Error: ${error instanceof Error ? error.message : "Something went wrong during upload."}`);
+      console.error("Upload/Update error:", error);
+      setMessage(`❌ Error: ${error instanceof Error ? error.message : "Something went wrong."}`);
       setMessageType("error");
     } finally {
       setUploading(false);
     }
   };
 
-  const removeFile = () => {
+  const startEdit = (item: PortfolioItem) => {
+    setEditingItem(item);
+    setTitle(item.title);
+    setCategory(item.category);
+    setPreview(item.url);
     setFile(null);
+    setMessage(`Editing: "${item.title}"`);
+    setMessageType("info");
+
+    const input = document.getElementById("media-upload") as HTMLInputElement | null;
+    if (input) {
+      input.value = "";
+    }
+
+    document.getElementById("uploader-card")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const cancelEdit = () => {
+    setEditingItem(null);
+    setTitle("");
+    setCategory(CATEGORIES[0]);
     setPreview(null);
+    setFile(null);
     setMessage("");
     setMessageType("");
+
+    const input = document.getElementById("media-upload") as HTMLInputElement | null;
+    if (input) {
+      input.value = "";
+    }
+  };
+
+  const removeFile = () => {
+    setFile(null);
+    setPreview(editingItem ? editingItem.url : null);
+    setMessage(editingItem ? `Editing: "${editingItem.title}"` : "");
+    setMessageType(editingItem ? "info" : "");
 
     const input = document.getElementById("media-upload") as HTMLInputElement | null;
     if (input) {
@@ -276,14 +349,14 @@ export default function AdminUploadPage() {
           </Button>
         </div>
 
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
+        <Card id="uploader-card" className="dark:bg-gray-800 dark:border-gray-700">
           <CardHeader>
             <CardTitle className="text-2xl md:text-3xl font-bold text-center dark:text-white flex items-center justify-center space-x-2">
               <Upload className="h-6 w-6 md:h-7 md:w-7 text-rose-600" />
-              <span>Admin Media Uploader</span>
+              <span>{editingItem ? "Edit Portfolio Item" : "Admin Media Uploader"}</span>
             </CardTitle>
             <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
-              Upload images or videos to your portfolio (Max: 100MB).
+              {editingItem ? "Modify metadata or replace the media file below" : "Upload images or videos to your portfolio (Max: 100MB)."}
             </p>
           </CardHeader>
 
@@ -323,7 +396,7 @@ export default function AdminUploadPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Media File (Image or Video)
+                  Media File {editingItem ? "(Optional - select to replace current file)" : "(Required)"}
                 </label>
                 <div className="flex items-center space-x-3 p-3 border-2 border-dashed rounded-lg dark:border-gray-600">
                   {fileTypeIcon}
@@ -332,7 +405,7 @@ export default function AdminUploadPage() {
                     type="file"
                     accept="image/*,video/*"
                     onChange={handleFileChange}
-                    required={!file}
+                    required={!file && !editingItem}
                     className="file:text-rose-600 file:bg-rose-50 file:border-0 file:rounded-full file:py-1 file:px-3 file:mr-4 hover:file:bg-rose-100 dark:file:bg-rose-900/50 dark:file:text-rose-300"
                   />
                   {file && (
@@ -345,9 +418,11 @@ export default function AdminUploadPage() {
 
               {preview && (
                 <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Preview:</p>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {editingItem && !file ? "Current Media:" : "Preview:"}
+                  </p>
                   <div className="relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-                    {file?.type.startsWith("video/") ? (
+                    {(file && file.type.startsWith("video/")) || (!file && editingItem && editingItem.mediaType === "video") ? (
                       <video src={preview} controls className="w-full max-h-64 object-contain" />
                     ) : (
                       <img src={preview} alt="Preview" className="w-full max-h-64 object-contain" />
@@ -358,19 +433,36 @@ export default function AdminUploadPage() {
 
               {message && <p className={`rounded p-2 text-sm ${statusClassName}`}>{message}</p>}
 
-              <Button type="submit" disabled={uploading || !file} className="w-full animated-button bg-rose-600 hover:bg-rose-700 dark:bg-rose-700 dark:hover:bg-rose-800 disabled:opacity-50">
-                {uploading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save to Portfolio
-                  </>
+              <div className="flex gap-4">
+                {editingItem && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={cancelEdit}
+                    disabled={uploading}
+                    className="flex-1 dark:border-gray-600 dark:text-white"
+                  >
+                    Cancel Edit
+                  </Button>
                 )}
-              </Button>
+                <Button
+                  type="submit"
+                  disabled={uploading || (!file && !editingItem && !title)}
+                  className={`bg-rose-600 hover:bg-rose-700 dark:bg-rose-700 dark:hover:bg-rose-800 disabled:opacity-50 ${editingItem ? 'flex-1' : 'w-full animated-button'}`}
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {editingItem ? "Updating..." : "Uploading..."}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      {editingItem ? "Update Item" : "Save to Portfolio"}
+                    </>
+                  )}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
@@ -412,41 +504,55 @@ export default function AdminUploadPage() {
                       </div>
                     </div>
 
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          disabled={deletingId === item._id}
-                          className="flex-shrink-0 text-red-500 hover:text-red-700"
-                        >
-                          {deletingId === item._id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete "{item.title}"?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This removes the item from the live site and deletes the file from
-                            Cloudinary. This can't be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(item._id)}
-                            className="bg-red-600 hover:bg-red-700"
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        disabled={uploading || deletingId === item._id}
+                        onClick={() => startEdit(item)}
+                        className="flex-shrink-0 text-rose-600 hover:text-rose-700 animate-fade-in"
+                        aria-label="Edit item"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            disabled={deletingId === item._id}
+                            className="flex-shrink-0 text-red-500 hover:text-red-700"
                           >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                            {deletingId === item._id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete "{item.title}"?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This removes the item from the live site and deletes the file from
+                              Cloudinary. This can't be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(item._id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </li>
                 ))}
               </ul>
